@@ -1,0 +1,2 @@
+# Modelling-for-Miami-University-Alumni-donations-data
+Predictive model for Miami University Alumni donations data. In this project we sought to answer 3 main questions using 3 different statistical models. First , the probability that a past donor will give based on observed historical data (Using a Logistic regression model) . Second , the proportion of  years from graduation for a past donor to give to the school (Binomial regression). Finally , the amount  that a particular donor will give using a tweedie/gamma model 
