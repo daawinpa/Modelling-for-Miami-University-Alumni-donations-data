@@ -1,0 +1,253 @@
+---
+title: "Automatic Selection"
+author: "Palma Daawin"
+date: "November 28, 2016"
+output: html_document
+---
+
+```{R}
+setwd("C:/Users/Palma/Desktop/MS STATS/Year2 Sem1/STA 660 Data Practicum/Jones/Finalanalysis/LatestFinal")
+load(file="Jones.RData")
+library (ISLR)
+library (leaps)
+library(dplyr)
+library(ggplot2)
+library(plyr)
+library(scales)
+```
+
+
+```{r}
+###Subset data to required and relevant variables 
+jonesdat<-Jones%>%select(Entity,Credit,Athlete,Degree.Count,Degree.Year.1,School.Category,Relationship.Status, Primary.Relationship,Gender,Married,Region,GradToGive,GaveLastYear,LastGave,Degree.Category,SRVCE,ALUEV,CHAPT,REUN,Greek,Part.Level)
+jonesdat<-jonesdat[jonesdat$Credit>0,]
+```
+
+
+```{r}
+
+#regfit.best=regsubsets(log(Credit)~.^2,data=jonesdat[1:100,], really.big=TRUE,method="forward")
+
+coef(regfit.best,15)
+
+test.mat=model.matrix(log(Credit)~.,data=jonesdat[101:200,])
+
+val.errors =rep(NA ,15)
+val.errors2 =rep(NA ,15)
+for(i in 1:15){ 
+coefi=coef(regfit.best ,id=i)
+pred=test.mat[,names(coefi)]%*%coefi
+val.errors[i]= mean((log(jonesdat[101:200,]$Credit)-pred)^2)
+val.errors2[i]= mean((exp(log(jonesdat[101:200,]$Credit)-pred))^2)
+} 
+val.errors   ## 10 predictors is the best
+
+```
+
+
+
+Start the cross validation approach in book
+```{r}
+set.seed (1)
+train=sample(c(TRUE,FALSE), nrow(jonesdat),rep=TRUE)
+test =(!train)
+
+
+regfit.best=regsubsets(log(Credit)~LastGave+Gender+GradToGive+GaveLastYear + School.Category + Region + Degree.Count + Degree.Year.1 + Degree.Category +  Athlete +  SRVCE +ALUEV + CHAPT + REUN + Greek   + SRVCE*Athlete + Degree.Year.1*ALUEV  + LastGave*Athlete +  LastGave*Gender + GradToGive*LastGave+ LastGave*Region + LastGave*GaveLastYear +LastGave*School.Category  +LastGave*Degree.Category + LastGave*Degree.Year.1  +GradToGive*Athlete + GradToGive*Gender +  GradToGive*Region + GradToGive*GaveLastYear+ GradToGive*School.Category + GradToGive*Degree.Category +GradToGive*Degree.Year.1+  Degree.Year.1*SRVCE + Degree.Year.1*Athlete + Greek*Degree.Year.1 + Degree.Count*Degree.Year.1 +  School.Category*Part.Level +  Degree.Year.1*Athlete*ALUEV ,data=jonesdat[train,],nvmax=60,really.big=TRUE,method="forward")
+
+
+test.mat=model.matrix(log(Credit)~LastGave+Gender+GradToGive+GaveLastYear + School.Category + Region + Degree.Count + Degree.Year.1 + Degree.Category +  Athlete +  SRVCE +ALUEV + CHAPT + REUN + Greek   + SRVCE*Athlete + Degree.Year.1*ALUEV  + LastGave*Athlete +  LastGave*Gender + GradToGive*LastGave+ LastGave*Region + LastGave*GaveLastYear +LastGave*School.Category  +LastGave*Degree.Category + LastGave*Degree.Year.1  +GradToGive*Athlete + GradToGive*Gender +  GradToGive*Region + GradToGive*GaveLastYear+ GradToGive*School.Category + GradToGive*Degree.Category +GradToGive*Degree.Year.1+  Degree.Year.1*SRVCE + Degree.Year.1*Athlete + Greek*Degree.Year.1 + Degree.Count*Degree.Year.1 +  School.Category*Part.Level +  Degree.Year.1*Athlete*ALUEV,data=jonesdat[test,])
+
+val.errors =rep(NA ,60)
+val.errors2 =rep(NA ,60)
+for(i in 1:60){ 
+coefi=coef(regfit.best ,id=i)
+pred=test.mat[,names(coefi)]%*% coefi
+val.errors [i]= mean((log(jonesdat[test,]$Credit)-pred)^2)
+val.errors2[i]= mean((exp(log(jonesdat[test,]$Credit)-pred))^2)
+} 
+val.errors   ## 10 predictors is the best
+val.errors2
+plot(val.errors, type='l',ylab="RMSE",xlab="Model Size")
+plot(val.errors2, type='l' )
+
+w.min=which.min(val.errors )
+w.min2=which.min(val.errors2)
+w.min
+w.min2
+
+regfit.best=regsubsets(log(Credit)~LastGave+Gender+GradToGive+GaveLastYear + School.Category + Region + Degree.Count + Degree.Year.1 + Degree.Category +  Athlete +  SRVCE +ALUEV + CHAPT + REUN + Greek   + SRVCE*Athlete + Degree.Year.1*ALUEV  + LastGave*Athlete +  LastGave*Gender + GradToGive*LastGave+ LastGave*Region + LastGave*GaveLastYear +LastGave*School.Category  +LastGave*Degree.Category + LastGave*Degree.Year.1  +GradToGive*Athlete + GradToGive*Gender +  GradToGive*Region + GradToGive*GaveLastYear+ GradToGive*School.Category + GradToGive*Degree.Category +GradToGive*Degree.Year.1+  Degree.Year.1*SRVCE + Degree.Year.1*Athlete + Greek*Degree.Year.1 + Degree.Count*Degree.Year.1 +  School.Category*Part.Level +  Degree.Year.1*Athlete*ALUEV ,data=jonesdat,nvmax=w.min,really.big=TRUE,method="forward")
+
+coef(regfit.best ,w.min)
+
+val.errors =rep(NA ,26)
+val.errors2 =rep(NA ,26)
+for(i in 1:26){ 
+coefi=coef(regfit.best ,id=i)
+pred=test.mat[,names(coefi)]%*% coefi
+val.errors [i]= mean((log(jonesdat[test,]$Credit)-pred)^2)
+val.errors2[i]= mean((exp(log(jonesdat[test,]$Credit)-pred))^2)
+} 
+
+
+##Create the prection dataset 
+colnames(pred) <- "yhat"
+test.pred <- cbind(jonesdat[test,], pred)
+test.pred$LogCredit<-log(jonesdat[test,]$Credit)
+test.pred$predict<-exp(test.pred$yhat)
+View(test.pred)
+test.pred$error<- test.pred$predict/test.pred$Credit
+View(test.pred)
+summary(test.pred$error)
+hist(test.pred$error)
+table(test.pred$error)
+median(test.pred$error)
+```
+
+
+```{r}
+#coef(regfit.best ,w.min)
+### Fit the best model ##################
+
+modelbest<-lm(log(Credit)~Gender + GradToGive+  GaveLastYear + School.Category +Athlete +SRVCE
+             +Part.Level +Degree.Year.1:ALUEV  +LastGave:Athlete + LastGave:GradToGive+
+                LastGave:Region +LastGave:School.Category + GradToGive:Region +
+               GradToGive:GaveLastYear + GradToGive:School.Category + GradToGive:Degree.Category
+             + GradToGive:Degree.Year.1 + Degree.Year.1:Athlete +School.Category:Part.Level+
+              Athlete:ALUEV ,data=jonesdat) 
+summary(modelbest)
+plot(modelbest)
+
+##Using GLM function 
+modelbest<-glm(log(Credit)~Gender + GradToGive+  GaveLastYear + School.Category +Athlete +SRVCE
+             +Part.Level +Degree.Year.1:ALUEV  +LastGave:Athlete + LastGave:GradToGive+
+                LastGave:Region +LastGave:School.Category + GradToGive:Region +
+               GradToGive:GaveLastYear + GradToGive:School.Category + GradToGive:Degree.Category
+             + GradToGive:Degree.Year.1 + Degree.Year.1:Athlete +School.Category:Part.Level+
+              Athlete:ALUEV ,data=jonesdat) 
+
+summary(modelbest)
+jonesdat$fitted<- modelbest$fitted.values
+jonesdat$pred <- exp(modelbest$fitted.values)
+ 
+View(jonesdat)
+summary(jonesdat$pred )
+
+
+```
+
+
+```{r}
+# looking at big donors
+big.donors <- jonesdat %>% filter(jonesdat$fitted > 6.907755279) # donors greater than $1000
+# looking at big donors
+big.donors <- test.pred %>% filter(yhat > 6.907755279) #donors greater than $1000
+View(big.donors)
+############Identify one big donor###############
+#A00067872
+profilebigdonor<-big.donors[big.donors$Entity=="A00067872",]
+View(profilebigdonor)
+
+
+
+plot(profilebigdonor$GradToGive,profilebigdonor$predict ,main="Giving Profile Plot of a Selected Big Donor", pch=20 ,col="blue" ,xlab="Years after Graduation", ylab="Amount Given (Fitted )")
+lines(profilebigdonor$Credit, lwd=3, lty=2)
+
+
+profilebigdonor<-test.pred[test.pred$Entity=="A00067872",]
+
+ggplot()+
+  geom_line(aes(x=profilebigdonor$GradToGive, y=profilebigdonor$predict,color=profilebigdonor$GradToGive ),color="blue", data=profilebigdonor)  +
+  theme_bw() + 
+  xlab("Years after Graduation")+ylab("Amount Given Fitted")+
+  ggtitle("Giving Profile Plot of a Selected Big Donor") + 
+  guides(color = guide_legend(override.aes= list(alpha = 1))) 
+
+
+
+
+#################################################
+
+dim(big.donors)
+table(big.donors$School) #farmer make up majority 77.14%
+table(big.donors$Region) # midwest make up majority 68.57
+table(big.donors$Athlete) # 29.6% athletes
+table(big.donors$Greek) # roughly 75% Greek
+table(big.donors$Gender) # 65.7% male
+table(big.donors$Married) # 65.7% married
+table(big.donors$Degree.Year.1 )
+mean(big.donors$LastGave)
+median(big.donors$LastGave)
+ table(big.donors$GaveLastYear ) 
+
+mean(test.pred$LastGave)
+median(test.pred$LastGave)
+ table(test.pred$GaveLastYear ) 
+
+hist(big.donors$SRVCE) # uniform
+hist(big.donors$ALUEV) # right skewed
+hist(big.donors$Part.Level) # uniform
+```
+
+
+
+```{r}
+######################################
+small.donors <- test.pred %>% filter(yhat < 3.912023)
+View(small.donors)
+View(test.pred)
+
+profilesmalldonor<-test.pred [test.pred $Entity=="A00071631",]
+#View(profilesmalldonor)
+
+plot(profilesmalldonor$GradToGive,profilesmalldonor$pred,main="Giving Profile Plot of a Selected Small Donor", pch=20 ,col="blue" ,xlab="Years after Graduation", ylab="Amount Given (Fitted )")
+
+
+library(ggplot2)
+ggplot()+
+  geom_line(aes(x=GradToGive, y=predict ,color=GradToGive ),color="blue", data=profilesmalldonor) +
+  xlab("Years after Graduation")+ylab("Amount Given Fitted")+
+  ggtitle("Giving Profile Plot of a Selected Small Donor") + 
+  guides(color = guide_legend(override.aes= list(alpha = 1))) 
+
+
+# looking at small donors
+
+dim(small.donors)
+mean(small.donors$LastGave)
+median(small.donors$LastGave)
+small.donors <- jonesdat %>% filter(jonesdat$fitted< 3.912023) # donors less than $50
+table(small.donors$School)  # arts & science make up majority 45.5%7
+table(small.donors$Region) # midwest make up majority 67.84
+table(small.donors$Athlete) # 2.65% athletes
+table(small.donors$Greek) # roughly 33.4% Greek
+table(small.donors$Gender) # 35.45% male
+table(small.donors$Married) # 0.3% married
+table(small.donors$Degree.Category) # 35.45% male
+table(small.donors$Degree.Year.1>2006 )
+
+hist(small.donors$SRVCE) # no service
+hist(small.donors$ALUEV) # no alum e>2006vents
+hist(small.donors$Part.Level) # no participation if little
+
+ table(small.donors$GaveLastYear ) 
+ 
+hist(jonesdat$fitted, main="Histogram of Log Yearly Amount Given ",xlab="log Yearly amount given")
+library(ggplot2)
+qplot(jonesdat$fitted,
+      geom="histogram",
+      xlab = "log Yearly amount given",
+      #fill=I("gray"),
+      binwidth = .3,
+      main = "Histogram of Log Yearly Amount Given")
+
+
+#A00073025
+#A00072835
+#A00072719
+#A00072299
+#A00072261
+#A00072250
+#A00072194
+#A00071631
+```
